@@ -44,7 +44,7 @@ en orden y un pedido solo se entrega con el código correcto.
 | Entorno local | Supabase CLI sobre **Docker** (levanta PostgreSQL, Auth, Storage y Studio en contenedores) |
 | Pruebas | Vitest (dominio, servicios y SQL con PGlite) · Playwright (recorrido en navegador) |
 | Calidad | ESLint · TypeScript estricto · GitHub Actions (CI en cada push y Pull Request) |
-| Producción | Vercel + Supabase en la nube |
+| Entrega | **Dockerfile** todo en uno: el sistema completo en un solo contenedor |
 
 ---
 
@@ -55,8 +55,8 @@ Supabase y sin claves. La imagen trae todo dentro (PostgreSQL, inicio de sesión
 aplicación) y en el primer arranque crea las tablas, el menú de ejemplo y las cuentas demo.
 
 ```bash
-git clone https://github.com/FranciscoVilli/cafeteria-web.git
-cd cafeteria-web
+git clone https://github.com/FranciscoVilli/cafeteria-pedidos.git
+cd cafeteria-pedidos
 docker build -t cafeteria-web .
 docker run --name cafeteria -p 3000:3000 cafeteria-web
 ```
@@ -97,8 +97,8 @@ No necesitas instalar PostgreSQL ni crear cuentas en Supabase: todo corre en con
 ### 2. Clonar e instalar
 
 ```bash
-git clone https://github.com/<usuario>/cafeteria-web.git
-cd cafeteria-web
+git clone https://github.com/FranciscoVilli/cafeteria-pedidos.git
+cd cafeteria-pedidos
 npm install
 ```
 
@@ -195,17 +195,20 @@ Recorre el flujo del cliente y del personal (23 verificaciones) y guarda captura
 
 ---
 
-## Cómo trabajamos (GitHub Flow)
+## Cómo trabajamos (Feature Branch Workflow)
 
-1. `main` siempre tiene código estable y desplegable.
-2. Para cada cambio cree una rama desde `main`: `git checkout -b feature/nombre-corto`.
-3. Haga commits pequeños y suba la rama: `git push -u origin feature/nombre-corto`.
-4. Abra un **Pull Request** hacia `main`. GitHub Actions ejecuta lint, tipos, pruebas y build.
-5. Con la CI en verde y la revisión de un compañero, se hace *merge* y se borra la rama.
+1. `main` es la única rama de código y siempre tiene la versión estable.
+2. Cada historia de usuario se desarrolla en su propia rama, creada desde `main`:
+   `feature/hu05-estado-pedido`, `feature/hu06-07-gestion-menu`…
+3. Commits pequeños con el formato `tipo(alcance): descripción (HU-XX)`, por ejemplo
+   `feat(pedido): confirmar pedido y generar código de retiro (HU-04)`.
+4. La rama se sube y se abre un **Pull Request** hacia `main` que cierra su issue (`Closes #N`).
+   GitHub Actions ejecuta lint, tipos, pruebas con cobertura y build.
+5. Otro integrante revisa y aprueba (es obligatorio: `main` está protegida). Se integra con
+   *merge commit* y la rama se borra.
 
-La rama **`documentacion`** contiene los entregables escritos (requisitos, diseño, manuales,
-casos de prueba, análisis estático) y también se integra a `main` mediante Pull Request. El
-detalle del método de ramificación está en [`docs/GITHUB_FLOW.md`](docs/GITHUB_FLOW.md).
+La rama **`documentacion`** es permanente y solo contiene los entregables escritos; recibe ramas
+`docs/*` por Pull Request y **nunca se mezcla con `main`**.
 
 ## Estructura del proyecto
 
@@ -222,12 +225,12 @@ scripts/              Configuración local y creación de cuentas del personal
 e2e/                  Recorrido automatizado en navegador
 public/productos/     Fotos del menú de ejemplo (licencias CC, ver CREDITOS.md)
 docker/               Arranque de la imagen todo en uno (ver Dockerfile)
-docs/                 Método de ramificación (GitHub Flow)
+docs/                 Cómo generar la documentación técnica (TypeDoc)
 ```
 
 Los documentos del curso (requisitos, diseño, casos de prueba, análisis estático, manuales y
 documentación técnica) están en la rama
-[`documentacion`](https://github.com/FranciscoVilli/cafeteria-web/tree/documentacion).
+[`documentacion`](https://github.com/FranciscoVilli/cafeteria-pedidos/tree/documentacion).
 
 La arquitectura es **por capas**: el dominio no conoce Next.js ni Supabase, por eso se prueba sin
 base de datos. Las pruebas están organizadas por historia de usuario en
@@ -254,21 +257,5 @@ base de datos. Las pruebas están organizadas por historia de usuario en
 - Cada Server Action verifica la sesión y el rol antes de actuar.
 - Límite de intentos en ingreso y registro (10 por minuto por IP).
 - Las fotos subidas se validan (JPG/PNG/WebP, máx. 4 MB) y se normalizan a 900×900 WebP.
-
----
-
-## Producción: Supabase en la nube + Vercel
-
-1. **Supabase:** cree un proyecto en [supabase.com](https://supabase.com) (plan gratuito). En
-   **SQL Editor** ejecute en orden:
-   - `supabase/migrations/20261117000000_esquema_inicial.sql`
-   - `supabase/migrations/20261118000000_postres_y_fotos.sql`
-   - `supabase/seed.sql` (opcional: menú de ejemplo)
-2. **Vercel:** importe el repositorio (detecta Next.js). En **Settings → Environment Variables**
-   cargue las tres variables de `.env.example` con los valores de Supabase → Project Settings → API.
-3. **Personal:** cree las cuentas con `scripts/crear-personal.mjs` usando un `.env.local` que apunte
-   al proyecto en la nube.
-4. Cada push a `main` despliega a producción; cada Pull Request recibe una URL de vista previa.
-
-> ⚠️ La clave `SUPABASE_SERVICE_ROLE_KEY` es secreta: nunca la suba al repositorio ni la ponga en
-> una variable que empiece con `NEXT_PUBLIC_`.
+- La clave `SUPABASE_SERVICE_ROLE_KEY` solo existe en el servidor (`.env.local`, que no se sube al
+  repositorio) y nunca en una variable que empiece con `NEXT_PUBLIC_`.
