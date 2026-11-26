@@ -205,7 +205,7 @@ Recorre el flujo del cliente y del personal (23 verificaciones) y guarda captura
 4. La rama se sube y se abre un **Pull Request** hacia `main` que cierra su issue (`Closes #N`).
    GitHub Actions ejecuta lint, tipos, pruebas con cobertura y build.
 5. Otro integrante revisa y aprueba (es obligatorio: `main` está protegida). Se integra con
-   *merge commit* y la rama se borra.
+   *merge commit*. Las ramas no se borran: quedan como registro de cada funcionalidad.
 
 La rama **`documentacion`** es permanente y solo contiene los entregables escritos; recibe ramas
 `docs/*` por Pull Request y **nunca se mezcla con `main`**.
