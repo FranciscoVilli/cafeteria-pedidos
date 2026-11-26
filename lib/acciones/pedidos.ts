@@ -8,7 +8,6 @@
 import { revalidatePath } from "next/cache";
 import type { ResumenCarrito } from "@/lib/aplicacion/pedido-servicio";
 import { aCantidad, sanear, type Carrito } from "@/lib/dominio/carrito";
-import { EntidadNoEncontradaError } from "@/lib/dominio/errores";
 import { servicios } from "@/lib/servicios";
 import { exigirCliente } from "@/lib/sesion";
 import { ejecutar, type Resultado } from "./resultado";
@@ -34,18 +33,6 @@ export async function confirmarPedido(carrito: unknown): Promise<Resultado<{ cod
     const cliente = await exigirCliente();
     const pedido = await servicios().pedidos.confirmarPedido(sanear(carrito), cliente.codigo);
     revalidatePath("/personal");
-    return { codigoRetiro: pedido.codigoRetiro };
-  });
-}
-
-/** Busca un pedido por código de retiro para la página de seguimiento (HU-05). */
-export async function buscarPorCodigo(codigo: string): Promise<Resultado<{ codigoRetiro: string }>> {
-  return ejecutar(async () => {
-    const limpio = (codigo ?? "").trim().toUpperCase();
-    if (!/^[A-Z0-9]{6}$/.test(limpio)) {
-      throw new EntidadNoEncontradaError("El código de retiro tiene 6 letras o números.");
-    }
-    const pedido = await servicios().pedidos.consultarPorCodigoRetiro(limpio);
     return { codigoRetiro: pedido.codigoRetiro };
   });
 }
