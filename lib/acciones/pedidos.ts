@@ -1,7 +1,7 @@
 "use server";
 /**
  * Acciones del carrito y de los pedidos. Las del carrito son públicas (no escriben en la base);
- * confirmar exige sesión de cliente.
+ * confirmar exige sesión de cliente y avanzar o entregar exigen sesión del personal.
  *
  * @module acciones/pedidos
  */
@@ -9,8 +9,9 @@ import { revalidatePath } from "next/cache";
 import type { ResumenCarrito } from "@/lib/aplicacion/pedido-servicio";
 import { aCantidad, sanear, type Carrito } from "@/lib/dominio/carrito";
 import { EntidadNoEncontradaError } from "@/lib/dominio/errores";
+import type { EstadoPedido } from "@/lib/dominio/estado-pedido";
 import { servicios } from "@/lib/servicios";
-import { exigirCliente } from "@/lib/sesion";
+import { exigirCliente, exigirPersonal } from "@/lib/sesion";
 import { ejecutar, type Resultado } from "./resultado";
 
 /** Agrega un producto al carrito validando cantidad y disponibilidad (HU-02). */
@@ -38,6 +39,26 @@ export async function confirmarPedido(carrito: unknown): Promise<Resultado<{ cod
   });
 }
 
+/** Avanza un pedido al siguiente estado (HU-09). Solo personal. */
+export async function avanzarPedido(id: number): Promise<Resultado<{ estado: EstadoPedido }>> {
+  return ejecutar(async () => {
+    await exigirPersonal();
+    const pedido = await servicios().pedidos.avanzarEstado(id);
+    revalidar(pedido.codigoRetiro, id);
+    return { estado: pedido.estado };
+  });
+}
+
+/** Entrega un pedido verificando el código de retiro (HU-10). Solo personal. */
+export async function entregarPedido(id: number, codigo: string): Promise<Resultado<{ estado: EstadoPedido }>> {
+  return ejecutar(async () => {
+    await exigirPersonal();
+    const pedido = await servicios().pedidos.entregarPedido(id, codigo);
+    revalidar(pedido.codigoRetiro, id);
+    return { estado: pedido.estado };
+  });
+}
+
 /** Busca un pedido por código de retiro para la página de seguimiento (HU-05). */
 export async function buscarPorCodigo(codigo: string): Promise<Resultado<{ codigoRetiro: string }>> {
   return ejecutar(async () => {
@@ -48,4 +69,10 @@ export async function buscarPorCodigo(codigo: string): Promise<Resultado<{ codig
     const pedido = await servicios().pedidos.consultarPorCodigoRetiro(limpio);
     return { codigoRetiro: pedido.codigoRetiro };
   });
+}
+
+function revalidar(codigoRetiro: string, id: number) {
+  revalidatePath("/personal");
+  revalidatePath(`/personal/pedidos/${id}`);
+  revalidatePath(`/pedido/${codigoRetiro}`);
 }
