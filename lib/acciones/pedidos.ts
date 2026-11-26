@@ -1,17 +1,17 @@
 "use server";
 /**
- * Acciones del carrito. Son públicas: validan con el servidor pero no escriben en la base
- * (el carrito vive en el navegador, SUP-17).
+ * Acciones del carrito y de los pedidos. Las del carrito son públicas (no escriben en la base);
+ * confirmar exige sesión de cliente.
  *
  * @module acciones/pedidos
  */
-import { aCantidad, sanear, type Carrito } from "@/lib/dominio/carrito";
-import { servicios } from "@/lib/servicios";
-import { ejecutar, type Resultado } from "./resultado";
 import { revalidatePath } from "next/cache";
 import type { ResumenCarrito } from "@/lib/aplicacion/pedido-servicio";
+import { aCantidad, sanear, type Carrito } from "@/lib/dominio/carrito";
 import { EntidadNoEncontradaError } from "@/lib/dominio/errores";
+import { servicios } from "@/lib/servicios";
 import { exigirCliente } from "@/lib/sesion";
+import { ejecutar, type Resultado } from "./resultado";
 
 /** Agrega un producto al carrito validando cantidad y disponibilidad (HU-02). */
 export async function agregarAlCarrito(carrito: unknown, codigo: string, cantidad: string | number): Promise<Resultado<Carrito>> {
@@ -49,4 +49,3 @@ export async function buscarPorCodigo(codigo: string): Promise<Resultado<{ codig
     return { codigoRetiro: pedido.codigoRetiro };
   });
 }
-
